@@ -1,10 +1,11 @@
-# [Project name]
+# RERA Agents Dashboard
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A web scraper and data viewer for RERA-registered real estate agents in Delhi. Scrapes data from the Delhi RERA website and stores it in a PostgreSQL database, displaying it in a searchable, filterable table.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/rera-dashboard run dev` — run the frontend (port 19583)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -14,32 +15,44 @@ _Replace the heading above with the project's name, and this line with one sente
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
+- API: Express 5 + axios + cheerio (scraping)
 - DB: PostgreSQL + Drizzle ORM
+- Frontend: React + Vite + TanStack Query + shadcn/ui
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — source of truth for all API contracts
+- `lib/db/src/schema/agents.ts` — DB schema for `rera_agents` table
+- `artifacts/api-server/src/lib/scraper.ts` — web scraper (axios + cheerio)
+- `artifacts/api-server/src/routes/agents.ts` — agents REST API
+- `artifacts/api-server/src/routes/scraper.ts` — scraper trigger & status API
+- `artifacts/rera-dashboard/src/` — React frontend
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Contract-first: OpenAPI spec drives both Zod validation schemas (server) and React Query hooks (client) via Orval codegen.
+- Scraper runs server-side only, triggered by POST /api/scraper/run. It handles pagination via next-page link detection.
+- Agents are upserted on registration number to avoid duplicates across scrape runs.
+- Cheerio is used for HTML parsing (lightweight, no headless browser needed).
+- The scraper respects the RERA site with 1.5s delays between pages.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
-
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Dashboard: Stats cards showing totals, individuals, companies, active/expired
+- Main table: Searchable and filterable by agent type, paginated
+- Agent detail page: Full record view with active/expired badge
+- "Sync Database" button triggers the scraper; shows progress feedback
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The RERA website HTML structure may change — scraper uses multiple fallback selectors
+- Run codegen after any OpenAPI spec change: `pnpm --filter @workspace/api-spec run codegen`
+- Scraper maxPages defaults to 10; increase via query param: POST /api/scraper/run?maxPages=50
+- Always push DB schema changes before restarting the API server
 
-## Pointers
+## User preferences
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Show data only in tables (no cards for individual records)
