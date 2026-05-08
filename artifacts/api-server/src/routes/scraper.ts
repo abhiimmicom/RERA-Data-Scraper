@@ -6,8 +6,8 @@ import { runScraper, getScraperState } from "../lib/scraper";
 const router: IRouter = Router();
 
 router.post("/scraper/run", async (req, res): Promise<void> => {
-  const maxPages = req.query.maxPages ? parseInt(String(req.query.maxPages), 10) : 10;
-  const result = await runScraper(isNaN(maxPages) ? 10 : maxPages);
+  const maxAgents = req.query.maxAgents ? parseInt(String(req.query.maxAgents), 10) : 0;
+  const result = await runScraper(isNaN(maxAgents) ? 0 : maxAgents);
   res.json(result);
 });
 

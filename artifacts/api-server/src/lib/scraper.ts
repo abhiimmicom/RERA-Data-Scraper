@@ -4,7 +4,8 @@ import { db, agentsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 
-const BASE_URL = "https://erera.co.in/ereradelhi/real-estate-agents/registered-real-estate-agents";
+const AGENT_LIST_URL = "https://erera.co.in/reradelhiindex/PublicView/AgentInfo";
+const AGENT_DETAIL_URL = "https://erera.co.in/reradelhiindex/PublicView/AgentViewDetails";
 
 export interface ScrapeResult {
   success: boolean;
@@ -22,142 +23,135 @@ export function getScraperState() {
   return { isRunning, lastRunAt };
 }
 
-function parseValidUntil(text: string): string | null {
-  const match = text.match(/Valid Until\s*[:：]?\s*(.+)/i);
-  return match ? match[1].trim() : null;
+const HTTP_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.5",
+  Referer: AGENT_LIST_URL,
+};
+
+interface AgentRow {
+  serialNumber: number | null;
+  name: string;
+  area: string | null;
+  registrationNo: string | null;
+  validUntil: string | null;
+  agentType: string;
+  internalId: number | null;
 }
 
-function parseRegistrationNo(text: string): string | null {
-  const match = text.match(/Registration No\.\s*[:：]?\s*(.+)/i);
-  return match ? match[1].trim() : null;
-}
-
-function parseRenewalCount(text: string): number | null {
-  const match = text.match(/Renewed\s*\((\d+)\)/i);
-  return match ? parseInt(match[1], 10) : null;
-}
-
-async function scrapePage(url: string): Promise<Array<Record<string, unknown>>> {
-  const response = await axios.get(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.5",
+async function fetchAllAgentRows(): Promise<AgentRow[]> {
+  const response = await axios.post(
+    AGENT_LIST_URL,
+    new URLSearchParams({
+      Agent_Name: "",
+      Project_Name: "",
+      RERAnumberRegistration: "",
+      AgentType: "0",
+      submit: "Search",
+    }).toString(),
+    {
+      headers: {
+        ...HTTP_HEADERS,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      timeout: 60000,
     },
-    timeout: 30000,
-  });
+  );
 
   const $ = cheerio.load(response.data);
-  const agents: Array<Record<string, unknown>> = [];
+  const agents: AgentRow[] = [];
 
-  $("table tr, .agent-row, .list-item, tr").each((_i, el) => {
-    const $el = $(el);
-    const cells = $el.find("td");
-    if (cells.length < 2) return;
+  $("table#dataTableSearchAgent tbody tr").each((_i, row) => {
+    const cells = $(row).find("td");
+    if (cells.length < 6) return;
+
+    const serialText = $(cells[0]).text().trim();
+    const serialNumber = parseInt(serialText, 10);
+
+    const nameTd = $(cells[1]);
+    const name = (nameTd.attr("data-agent-name") || nameTd.text().trim()).trim();
+    const hiddenInput = nameTd.find("input.hdnAgentID");
+    const internalIdText = hiddenInput.val() as string | undefined;
+    const internalId = internalIdText ? parseInt(internalIdText, 10) : null;
+
+    const area = $(cells[2]).text().trim() || null;
+
+    const regNoTd = $(cells[3]);
+    const registrationNo = (regNoTd.attr("data-diary-no") || regNoTd.text().trim()).trim() || null;
+
+    const validUntil = $(cells[4]).text().trim() || null;
+    const agentType = $(cells[5]).text().trim() || "Unknown";
+
+    if (!name) return;
+
+    agents.push({
+      serialNumber: isNaN(serialNumber) ? null : serialNumber,
+      name,
+      area,
+      registrationNo,
+      validUntil,
+      agentType,
+      internalId,
+    });
   });
-
-  const rows = $("table tbody tr");
-  if (rows.length > 0) {
-    rows.each((_i, row) => {
-      const cells = $(row).find("td");
-      if (cells.length < 3) return;
-
-      const firstCell = $(cells[0]).text().trim();
-      const serialNumber = parseInt(firstCell, 10);
-      if (isNaN(serialNumber)) return;
-
-      const infoCell = $(cells[1]).html() || "";
-      const typeCell = $(cells[2]).text().trim();
-      const regCell = $(cells[3])?.text().trim() || "";
-      const allText = $(cells[1]).text();
-
-      const nameMatch = allText.match(/Name\s*[:：]?\s*([^\n]+)/i);
-      const name = nameMatch ? nameMatch[1].trim() : $(cells[1]).find("strong, b").first().text().trim();
-
-      const designationMatch = allText.match(/Designation\s*[:：]?\s*([^\n]+)/i);
-      const designation = designationMatch ? designationMatch[1].trim() : null;
-
-      const personNameMatch = allText.match(/Name of person\s*[:：]?\s*([^\n]+)/i);
-      const personName = personNameMatch ? personNameMatch[1].trim() : null;
-
-      const addressMatch = allText.match(/Registered Address\s*[:：]?\s*([^\n]+)/i);
-      const registeredAddress = addressMatch ? addressMatch[1].trim() : null;
-
-      const phoneMatch = allText.match(/Phone Number\s*[:：]?\s*([^\n]+)/i);
-      const phoneNumber = phoneMatch ? phoneMatch[1].trim() : null;
-
-      const emailMatch = allText.match(/Email Id\s*[:：]?\s*([^\n]+)/i);
-      const emailId = emailMatch ? emailMatch[1].trim() : null;
-
-      const regNoCell = regCell || allText;
-      const registrationNo = parseRegistrationNo(regNoCell);
-      const validUntil = parseValidUntil(regNoCell);
-      const renewalCount = parseRenewalCount(regNoCell);
-
-      if (!name) return;
-
-      agents.push({
-        serialNumber: isNaN(serialNumber) ? null : serialNumber,
-        name,
-        agentType: typeCell || "Unknown",
-        designation,
-        personName,
-        registeredAddress,
-        phoneNumber,
-        emailId,
-        registrationNo,
-        validUntil,
-        renewalCount,
-      });
-    });
-  }
-
-  if (agents.length === 0) {
-    $(".views-row, .agent-item, [class*='agent']").each((_i, el) => {
-      const text = $(el).text();
-      const nameMatch = text.match(/Name\s*[:：]\s*([^\n]+)/i);
-      const name = nameMatch ? nameMatch[1].trim() : null;
-      if (!name) return;
-
-      const typeMatch = text.match(/Individual|Company|Other/i);
-      const agentType = typeMatch ? typeMatch[0] : "Unknown";
-      const snMatch = text.match(/^\s*(\d+)\s/);
-      const serialNumber = snMatch ? parseInt(snMatch[1], 10) : null;
-
-      agents.push({
-        serialNumber,
-        name,
-        agentType,
-        designation: text.match(/Designation\s*[:：]\s*([^\n]+)/i)?.[1]?.trim() ?? null,
-        personName: text.match(/Name of person\s*[:：]\s*([^\n]+)/i)?.[1]?.trim() ?? null,
-        registeredAddress: text.match(/Registered Address\s*[:：]\s*([^\n]+)/i)?.[1]?.trim() ?? null,
-        phoneNumber: text.match(/Phone Number\s*[:：]\s*([^\n]+)/i)?.[1]?.trim() ?? null,
-        emailId: text.match(/Email Id\s*[:：]\s*([^\n]+)/i)?.[1]?.trim() ?? null,
-        registrationNo: parseRegistrationNo(text),
-        validUntil: parseValidUntil(text),
-        renewalCount: parseRenewalCount(text),
-      });
-    });
-  }
 
   return agents;
 }
 
-function findNextPageUrl($: cheerio.CheerioAPI, currentUrl: string): string | null {
-  const nextLink = $("a[title='Go to next page'], a.page-link[rel='next'], .pager-next a, li.next a, a:contains('Next'), a:contains('›'), a:contains('»')").first();
-  if (!nextLink.length) return null;
+async function fetchAgentDetails(internalId: number): Promise<{
+  designation: string | null;
+  personName: string | null;
+  registeredAddress: string | null;
+  phoneNumber: string | null;
+  emailId: string | null;
+  certificateUrl: string | null;
+  renewalCount: number | null;
+}> {
+  const response = await axios.get(AGENT_DETAIL_URL, {
+    params: { inAgent_ID: internalId },
+    headers: HTTP_HEADERS,
+    timeout: 20000,
+  });
 
-  const href = nextLink.attr("href");
-  if (!href) return null;
+  const $ = cheerio.load(response.data);
+  const text = $("body").text();
 
-  if (href.startsWith("http")) return href;
-  if (href.startsWith("/")) return `https://erera.co.in${href}`;
+  const field = (label: string): string | null => {
+    const patterns = [
+      new RegExp(`${label}\\s*[:\\-]\\s*([^\\n\\r]+)`, "i"),
+    ];
+    for (const re of patterns) {
+      const m = text.match(re);
+      if (m) return m[1].trim().replace(/\s+/g, " ") || null;
+    }
+    return null;
+  };
 
-  const base = new URL(currentUrl);
-  return `${base.origin}${base.pathname}?${href.replace(/^\?/, "")}`;
+  const designation = field("Designation");
+  const personName = field("Name of (?:the )?(?:Authorized )?(?:person|proprietor|partner)");
+  const phoneNumber = field("(?:Phone|Mobile|Contact)\\s*(?:No\\.?|Number)?");
+  const emailId = field("Email\\s*(?:Id|Address)?");
+  const registeredAddress = field("Registered Address");
+
+  const certLink = $("a[href*='Certificate'], a[href*='certificate']").first().attr("href") || null;
+
+  const renewalMatch = text.match(/Renewed\s*\((\d+)\)/i);
+  const renewalCount = renewalMatch ? parseInt(renewalMatch[1], 10) : null;
+
+  return {
+    designation,
+    personName,
+    registeredAddress,
+    phoneNumber,
+    emailId,
+    certificateUrl: certLink,
+    renewalCount,
+  };
 }
 
-export async function runScraper(maxPages = 10): Promise<ScrapeResult> {
+export async function runScraper(maxAgents = 0): Promise<ScrapeResult> {
   if (isRunning) {
     return {
       success: false,
@@ -170,96 +164,84 @@ export async function runScraper(maxPages = 10): Promise<ScrapeResult> {
 
   isRunning = true;
   lastRunAt = new Date();
-  let totalScraped = 0;
   let totalInserted = 0;
   let totalUpdated = 0;
 
   try {
-    let currentUrl: string | null = BASE_URL;
-    let pageCount = 0;
+    logger.info("Fetching all agents from RERA portal");
+    const rows = await fetchAllAgentRows();
 
-    while (currentUrl && pageCount < maxPages) {
-      logger.info({ url: currentUrl, page: pageCount + 1 }, "Scraping page");
+    const agentsToProcess = maxAgents > 0 ? rows.slice(0, maxAgents) : rows;
+    logger.info({ total: agentsToProcess.length }, "Fetched agent rows");
 
-      const response = await axios.get(currentUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          "Accept": "text/html,application/xhtml+xml",
-        },
-        timeout: 30000,
-      });
+    for (let i = 0; i < agentsToProcess.length; i++) {
+      const row = agentsToProcess[i]!;
 
-      const $ = cheerio.load(response.data);
-      const agents = await scrapePage(currentUrl);
-      totalScraped += agents.length;
-
-      for (const agent of agents) {
-        if (!agent.name) continue;
-
-        const existing = agent.registrationNo
-          ? await db
-              .select()
-              .from(agentsTable)
-              .where(eq(agentsTable.registrationNo, agent.registrationNo as string))
-              .limit(1)
-          : [];
-
-        if (existing.length > 0) {
-          await db
-            .update(agentsTable)
-            .set({
-              name: agent.name as string,
-              agentType: agent.agentType as string,
-              designation: agent.designation as string | null,
-              personName: agent.personName as string | null,
-              registeredAddress: agent.registeredAddress as string | null,
-              phoneNumber: agent.phoneNumber as string | null,
-              emailId: agent.emailId as string | null,
-              validUntil: agent.validUntil as string | null,
-              renewalCount: agent.renewalCount as number | null,
-              scrapedAt: new Date(),
-            })
-            .where(eq(agentsTable.id, existing[0].id));
-          totalUpdated++;
-        } else {
-          await db.insert(agentsTable).values({
-            serialNumber: agent.serialNumber as number | null,
-            name: agent.name as string,
-            agentType: agent.agentType as string,
-            designation: agent.designation as string | null,
-            personName: agent.personName as string | null,
-            registeredAddress: agent.registeredAddress as string | null,
-            phoneNumber: agent.phoneNumber as string | null,
-            emailId: agent.emailId as string | null,
-            registrationNo: agent.registrationNo as string | null,
-            validUntil: agent.validUntil as string | null,
-            renewalCount: agent.renewalCount as number | null,
-            scrapedAt: new Date(),
-          });
-          totalInserted++;
+      let details: Awaited<ReturnType<typeof fetchAgentDetails>> | null = null;
+      if (row.internalId) {
+        try {
+          details = await fetchAgentDetails(row.internalId);
+        } catch (e) {
+          logger.warn({ internalId: row.internalId, err: String(e) }, "Failed to fetch agent details");
         }
+        await new Promise((r) => setTimeout(r, 300));
       }
 
-      pageCount++;
-      currentUrl = findNextPageUrl($, currentUrl);
-      if (currentUrl && pageCount < maxPages) {
-        await new Promise((r) => setTimeout(r, 1500));
+      const existing = row.registrationNo
+        ? await db
+            .select()
+            .from(agentsTable)
+            .where(eq(agentsTable.registrationNo, row.registrationNo))
+            .limit(1)
+        : [];
+
+      const values = {
+        name: row.name,
+        agentType: row.agentType,
+        registeredAddress: details?.registeredAddress ?? row.area,
+        designation: details?.designation ?? null,
+        personName: details?.personName ?? null,
+        phoneNumber: details?.phoneNumber ?? null,
+        emailId: details?.emailId ?? null,
+        validUntil: row.validUntil,
+        certificateUrl: details?.certificateUrl ?? null,
+        renewalCount: details?.renewalCount ?? null,
+        scrapedAt: new Date(),
+      };
+
+      if (existing.length > 0) {
+        await db
+          .update(agentsTable)
+          .set(values)
+          .where(eq(agentsTable.id, existing[0]!.id));
+        totalUpdated++;
+      } else {
+        await db.insert(agentsTable).values({
+          ...values,
+          serialNumber: row.serialNumber,
+          registrationNo: row.registrationNo,
+        });
+        totalInserted++;
+      }
+
+      if (i > 0 && i % 50 === 0) {
+        logger.info({ processed: i, total: agentsToProcess.length }, "Scraping progress");
       }
     }
 
     return {
       success: true,
-      agentsScraped: totalScraped,
+      agentsScraped: agentsToProcess.length,
       agentsInserted: totalInserted,
       agentsUpdated: totalUpdated,
-      message: `Scraped ${pageCount} page(s): ${totalInserted} new, ${totalUpdated} updated`,
+      message: `Scraped ${agentsToProcess.length} agents: ${totalInserted} new, ${totalUpdated} updated`,
     };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     logger.error({ error }, "Scraper failed");
     return {
       success: false,
-      agentsScraped: totalScraped,
+      agentsScraped: 0,
       agentsInserted: totalInserted,
       agentsUpdated: totalUpdated,
       message: "Scraper failed",
