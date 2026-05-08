@@ -222,6 +222,7 @@ export default function Home() {
                   <TableHead className="w-20 pl-6 text-xs uppercase tracking-wider text-muted-foreground">S.No</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Agent Name</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Type</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Phone</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Reg No.</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Valid Until</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Status</TableHead>
@@ -235,6 +236,7 @@ export default function Home() {
                       <TableCell className="pl-6"><Skeleton className="h-4 w-8" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
@@ -243,7 +245,7 @@ export default function Home() {
                   ))
                 ) : agentsData?.agents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-64 text-center">
+                    <TableCell colSpan={8} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                         <Database className="h-12 w-12 mb-4 text-muted/50" />
                         <p className="text-lg font-medium text-foreground">No agents found</p>
@@ -286,6 +288,7 @@ export default function Home() {
                             {agent.agentType.includes('Individual') && !agent.agentType.includes('Other') ? 'Individual' : 'Company'}
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{agent.phoneNumber || "-"}</TableCell>
                         <TableCell className="font-mono text-xs">{agent.registrationNo || "-"}</TableCell>
                         <TableCell className="text-sm">{agent.validUntil || "-"}</TableCell>
                         <TableCell>
