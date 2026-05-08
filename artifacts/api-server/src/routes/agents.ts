@@ -111,7 +111,10 @@ router.get("/agents", async (req, res): Promise<void> => {
 
   const [agents, totalResult] = await Promise.all([
     query
-      .orderBy(sql`${agentsTable.serialNumber} ASC NULLS LAST`)
+      .orderBy(
+        sql`CASE WHEN ${agentsTable.phoneNumber} IS NOT NULL THEN 0 ELSE 1 END ASC`,
+        sql`${agentsTable.serialNumber} ASC NULLS LAST`,
+      )
       .limit(limit)
       .offset(offset),
     countQuery,

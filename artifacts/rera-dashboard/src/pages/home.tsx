@@ -222,7 +222,7 @@ export default function Home() {
                   <TableHead className="w-20 pl-6 text-xs uppercase tracking-wider text-muted-foreground">S.No</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Agent Name</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Type</TableHead>
-                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Phone</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Contact Details</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Reg No.</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Valid Until</TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Status</TableHead>
@@ -288,7 +288,22 @@ export default function Home() {
                             {agent.agentType.includes('Individual') && !agent.agentType.includes('Other') ? 'Individual' : 'Company'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{agent.phoneNumber || "-"}</TableCell>
+                        <TableCell className="text-sm">
+                          {agent.phoneNumber || agent.emailId ? (
+                            <div className="flex flex-col gap-0.5">
+                              {agent.phoneNumber && (
+                                <span className="text-foreground font-medium">{agent.phoneNumber}</span>
+                              )}
+                              {agent.emailId && (
+                                <a href={`mailto:${agent.emailId}`} className="text-xs text-primary hover:underline truncate max-w-[180px]" title={agent.emailId}>
+                                  {agent.emailId}
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">–</span>
+                          )}
+                        </TableCell>
                         <TableCell className="font-mono text-xs">{agent.registrationNo || "-"}</TableCell>
                         <TableCell className="text-sm">{agent.validUntil || "-"}</TableCell>
                         <TableCell>
