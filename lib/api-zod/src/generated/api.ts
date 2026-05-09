@@ -119,3 +119,105 @@ export const GetScraperStatusResponse = zod.object({
   totalAgents: zod.number(),
   isRunning: zod.boolean(),
 });
+
+/**
+ * @summary List RECA Kolkata individual members
+ */
+export const listRecaMembersQueryPageDefault = 1;
+export const listRecaMembersQueryLimitDefault = 50;
+
+export const ListRecaMembersQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+  page: zod.coerce.number().default(listRecaMembersQueryPageDefault),
+  limit: zod.coerce.number().default(listRecaMembersQueryLimitDefault),
+});
+
+export const ListRecaMembersResponse = zod.object({
+  members: zod.array(
+    zod.object({
+      id: zod.number(),
+      photoUrl: zod.string().nullish(),
+      name: zod.string(),
+      age: zod.string().nullish(),
+      companyName: zod.string().nullish(),
+      membershipId: zod.string().nullish(),
+      reraNo: zod.string().nullish(),
+      hiraNo: zod.string().nullish(),
+      gstNo: zod.string().nullish(),
+      mobileNo: zod.string().nullish(),
+      altMobileNo: zod.string().nullish(),
+      landline: zod.string().nullish(),
+      email: zod.string().nullish(),
+      website: zod.string().nullish(),
+      address: zod.string().nullish(),
+      city: zod.string().nullish(),
+      associationName: zod.string().nullish(),
+      coreCompetence1: zod.string().nullish(),
+      coreCompetence2: zod.string().nullish(),
+      coreCompetence3: zod.string().nullish(),
+      coreCompetence4: zod.string().nullish(),
+      scrapedAt: zod.string(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+  totalPages: zod.number(),
+});
+
+/**
+ * @summary Trigger the RECA Kolkata member scraper
+ */
+export const TriggerRecaScrapeResponse = zod.object({
+  success: zod.boolean(),
+  scraped: zod.number(),
+  inserted: zod.number(),
+  updated: zod.number(),
+  message: zod.string(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * @summary Get RECA scraper status
+ */
+export const GetRecaScrapeStatusResponse = zod.object({
+  isRunning: zod.boolean(),
+  lastRunAt: zod.string().nullish(),
+  totalMembers: zod.number(),
+});
+
+/**
+ * @summary Get a single RECA Kolkata member
+ */
+export const GetRecaMemberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetRecaMemberResponse = zod.object({
+  id: zod.number(),
+  photoUrl: zod.string().nullish(),
+  name: zod.string(),
+  age: zod.string().nullish(),
+  companyName: zod.string().nullish(),
+  membershipId: zod.string().nullish(),
+  reraNo: zod.string().nullish(),
+  hiraNo: zod.string().nullish(),
+  gstNo: zod.string().nullish(),
+  mobileNo: zod.string().nullish(),
+  altMobileNo: zod.string().nullish(),
+  landline: zod.string().nullish(),
+  email: zod.string().nullish(),
+  website: zod.string().nullish(),
+  address: zod.string().nullish(),
+  city: zod.string().nullish(),
+  associationName: zod.string().nullish(),
+  coreCompetence1: zod.string().nullish(),
+  coreCompetence2: zod.string().nullish(),
+  coreCompetence3: zod.string().nullish(),
+  coreCompetence4: zod.string().nullish(),
+  scrapedAt: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});

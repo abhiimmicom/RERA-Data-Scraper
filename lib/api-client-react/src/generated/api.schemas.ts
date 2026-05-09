@@ -73,6 +73,77 @@ export interface ScraperStatus {
   isRunning: boolean;
 }
 
+export interface RecaMember {
+  id: number;
+  /** @nullable */
+  photoUrl?: string | null;
+  name: string;
+  /** @nullable */
+  age?: string | null;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  membershipId?: string | null;
+  /** @nullable */
+  reraNo?: string | null;
+  /** @nullable */
+  hiraNo?: string | null;
+  /** @nullable */
+  gstNo?: string | null;
+  /** @nullable */
+  mobileNo?: string | null;
+  /** @nullable */
+  altMobileNo?: string | null;
+  /** @nullable */
+  landline?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  associationName?: string | null;
+  /** @nullable */
+  coreCompetence1?: string | null;
+  /** @nullable */
+  coreCompetence2?: string | null;
+  /** @nullable */
+  coreCompetence3?: string | null;
+  /** @nullable */
+  coreCompetence4?: string | null;
+  scrapedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecaMemberListResponse {
+  members: RecaMember[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface RecaScrapeResult {
+  success: boolean;
+  scraped: number;
+  inserted: number;
+  updated: number;
+  message: string;
+  /** @nullable */
+  error?: string | null;
+}
+
+export interface RecaScrapeStatus {
+  isRunning: boolean;
+  /** @nullable */
+  lastRunAt?: string | null;
+  totalMembers: number;
+}
+
 export type ListAgentsParams = {
   search?: string;
   agentType?: string;
@@ -82,4 +153,10 @@ export type ListAgentsParams = {
 
 export type TriggerScrapeParams = {
   maxPages?: number;
+};
+
+export type ListRecaMembersParams = {
+  search?: string;
+  page?: number;
+  limit?: number;
 };

@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/app-layout";
 import Home from "@/pages/home";
 import AgentDetail from "@/pages/agent-detail";
+import RecaMembers from "@/pages/reca-members";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,6 +23,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/agents/:id" component={AgentDetail} />
+        <Route path="/reca-members" component={RecaMembers} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

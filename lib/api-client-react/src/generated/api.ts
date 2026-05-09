@@ -22,6 +22,11 @@ import type {
   AgentStats,
   HealthStatus,
   ListAgentsParams,
+  ListRecaMembersParams,
+  RecaMember,
+  RecaMemberListResponse,
+  RecaScrapeResult,
+  RecaScrapeStatus,
   ScraperResult,
   ScraperStatus,
   TriggerScrapeParams,
@@ -529,6 +534,343 @@ export function useGetScraperStatus<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetScraperStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List RECA Kolkata individual members
+ */
+export const getListRecaMembersUrl = (params?: ListRecaMembersParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reca-members?${stringifiedParams}`
+    : `/api/reca-members`;
+};
+
+export const listRecaMembers = async (
+  params?: ListRecaMembersParams,
+  options?: RequestInit,
+): Promise<RecaMemberListResponse> => {
+  return customFetch<RecaMemberListResponse>(getListRecaMembersUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRecaMembersQueryKey = (params?: ListRecaMembersParams) => {
+  return [`/api/reca-members`, ...(params ? [params] : [])] as const;
+};
+
+export const getListRecaMembersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRecaMembers>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListRecaMembersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRecaMembers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRecaMembersQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listRecaMembers>>> = ({
+    signal,
+  }) => listRecaMembers(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRecaMembers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRecaMembersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRecaMembers>>
+>;
+export type ListRecaMembersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List RECA Kolkata individual members
+ */
+
+export function useListRecaMembers<
+  TData = Awaited<ReturnType<typeof listRecaMembers>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListRecaMembersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRecaMembers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRecaMembersQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Trigger the RECA Kolkata member scraper
+ */
+export const getTriggerRecaScrapeUrl = () => {
+  return `/api/reca-members/scrape`;
+};
+
+export const triggerRecaScrape = async (
+  options?: RequestInit,
+): Promise<RecaScrapeResult> => {
+  return customFetch<RecaScrapeResult>(getTriggerRecaScrapeUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getTriggerRecaScrapeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerRecaScrape>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof triggerRecaScrape>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["triggerRecaScrape"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof triggerRecaScrape>>,
+    void
+  > = () => {
+    return triggerRecaScrape(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TriggerRecaScrapeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof triggerRecaScrape>>
+>;
+
+export type TriggerRecaScrapeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Trigger the RECA Kolkata member scraper
+ */
+export const useTriggerRecaScrape = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerRecaScrape>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof triggerRecaScrape>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getTriggerRecaScrapeMutationOptions(options));
+};
+
+/**
+ * @summary Get RECA scraper status
+ */
+export const getGetRecaScrapeStatusUrl = () => {
+  return `/api/reca-members/scrape/status`;
+};
+
+export const getRecaScrapeStatus = async (
+  options?: RequestInit,
+): Promise<RecaScrapeStatus> => {
+  return customFetch<RecaScrapeStatus>(getGetRecaScrapeStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRecaScrapeStatusQueryKey = () => {
+  return [`/api/reca-members/scrape/status`] as const;
+};
+
+export const getGetRecaScrapeStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRecaScrapeStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getRecaScrapeStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRecaScrapeStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRecaScrapeStatus>>
+  > = ({ signal }) => getRecaScrapeStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRecaScrapeStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRecaScrapeStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRecaScrapeStatus>>
+>;
+export type GetRecaScrapeStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get RECA scraper status
+ */
+
+export function useGetRecaScrapeStatus<
+  TData = Awaited<ReturnType<typeof getRecaScrapeStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getRecaScrapeStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRecaScrapeStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a single RECA Kolkata member
+ */
+export const getGetRecaMemberUrl = (id: number) => {
+  return `/api/reca-members/${id}`;
+};
+
+export const getRecaMember = async (
+  id: number,
+  options?: RequestInit,
+): Promise<RecaMember> => {
+  return customFetch<RecaMember>(getGetRecaMemberUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRecaMemberQueryKey = (id: number) => {
+  return [`/api/reca-members/${id}`] as const;
+};
+
+export const getGetRecaMemberQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRecaMember>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRecaMember>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRecaMemberQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecaMember>>> = ({
+    signal,
+  }) => getRecaMember(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRecaMember>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRecaMemberQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRecaMember>>
+>;
+export type GetRecaMemberQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a single RECA Kolkata member
+ */
+
+export function useGetRecaMember<
+  TData = Awaited<ReturnType<typeof getRecaMember>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRecaMember>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRecaMemberQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
