@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import * as fs from "fs";
 import * as path from "path";
 import { db, rivirtualJobsTable, rivirtualAgentsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { logger } from "./logger";
 
 const IMAGES_DIR = path.resolve(process.cwd(), "public/images/rivirtual");
@@ -75,7 +75,7 @@ async function downloadImage(
 
 interface ProfileRef {
   url: string;
-  name: string;
+  slug: string;
 }
 
 function extractProfileLinks(html: string): ProfileRef[] {
@@ -87,8 +87,8 @@ function extractProfileLinks(html: string): ProfileRef[] {
     const href = $(el).attr("href");
     if (!href || seen.has(href)) return;
     seen.add(href);
-    const name = $(el).closest("*").find("h2").text().trim() || $(el).text().trim();
-    refs.push({ url: href, name });
+    const slug = slugFromUrl(href);
+    refs.push({ url: href, slug });
   });
 
   return refs;
@@ -105,6 +105,14 @@ function detectMaxPage(html: string): number {
     }
   });
   return maxPage;
+}
+
+async function isJobStillRunning(jobId: number): Promise<boolean> {
+  const [job] = await db
+    .select({ status: rivirtualJobsTable.status })
+    .from(rivirtualJobsTable)
+    .where(eq(rivirtualJobsTable.id, jobId));
+  return job?.status === "running";
 }
 
 async function fetchAgentDetail(
@@ -199,11 +207,34 @@ export async function runRivirtualJob(jobId: number): Promise<void> {
 
     let totalAgents = 0;
 
-    const processPage = async (html: string, pageNum: number) => {
+    const processPage = async (html: string, pageNum: number): Promise<boolean> => {
+      // Check cancellation before processing each page
+      if (!(await isJobStillRunning(jobId))) return false;
+
       const profiles = extractProfileLinks(html);
       let inserted = 0;
 
+      // Find which slugs from this page already exist in the DB — skip those
+      const pageSlugs = profiles.map((p) => p.slug).filter(Boolean);
+      const existingSlugs = new Set<string>();
+      if (pageSlugs.length > 0) {
+        const existing = await db
+          .select({ slug: rivirtualAgentsTable.slug })
+          .from(rivirtualAgentsTable)
+          .where(inArray(rivirtualAgentsTable.slug, pageSlugs));
+        for (const row of existing) existingSlugs.add(row.slug);
+      }
+
       for (const profile of profiles) {
+        // Check cancellation between each profile fetch
+        if (!(await isJobStillRunning(jobId))) return false;
+
+        if (existingSlugs.has(profile.slug)) {
+          // Already scraped — count it but skip the network fetch
+          inserted++;
+          continue;
+        }
+
         await sleep(700);
         const agent = await fetchAgentDetail(profile.url, job.label, jobId);
         if (!agent) continue;
@@ -234,9 +265,15 @@ export async function runRivirtualJob(jobId: number): Promise<void> {
         .update(rivirtualJobsTable)
         .set({ pagesScraped: pageNum, agentsFound: totalAgents })
         .where(eq(rivirtualJobsTable.id, jobId));
+
+      return true;
     };
 
-    await processPage(resp1.data, 1);
+    const ok = await processPage(resp1.data, 1);
+    if (!ok) {
+      logger.info({ jobId }, "Rivirtual job cancelled");
+      return;
+    }
 
     const baseUrl = job.url.replace(/[?#].*$/, "");
 
@@ -247,7 +284,11 @@ export async function runRivirtualJob(jobId: number): Promise<void> {
         headers: HEADERS,
         timeout: 20000,
       });
-      await processPage(resp.data, page);
+      const ok = await processPage(resp.data, page);
+      if (!ok) {
+        logger.info({ jobId }, "Rivirtual job cancelled");
+        return;
+      }
     }
 
     await db

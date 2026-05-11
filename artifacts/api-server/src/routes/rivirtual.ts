@@ -76,10 +76,20 @@ router.delete("/rivirtual/jobs/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  const withAgents = req.query["withAgents"] === "true";
+
+  // Mark cancelled first — the running scraper loop will see this and stop
   await db
-    .delete(rivirtualAgentsTable)
-    .where(eq(rivirtualAgentsTable.jobId, id));
-  await db.delete(rivirtualJobsTable).where(eq(rivirtualJobsTable.id, id));
+    .update(rivirtualJobsTable)
+    .set({ status: "cancelled" })
+    .where(eq(rivirtualJobsTable.id, id));
+
+  if (withAgents) {
+    await db
+      .delete(rivirtualAgentsTable)
+      .where(eq(rivirtualAgentsTable.jobId, id));
+    await db.delete(rivirtualJobsTable).where(eq(rivirtualJobsTable.id, id));
+  }
 
   res.json({ success: true });
 });

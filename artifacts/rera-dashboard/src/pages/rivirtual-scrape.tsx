@@ -63,6 +63,13 @@ function StatusBadge({ job }: { job: RivirtualJob }) {
       </Badge>
     );
   }
+  if (job.status === "cancelled") {
+    return (
+      <Badge variant="secondary" className="gap-1 text-muted-foreground">
+        <XCircle className="w-3 h-3" /> Cancelled
+      </Badge>
+    );
+  }
   if (job.status === "running") {
     const pageText =
       job.totalPages && job.pagesScraped !== null
@@ -140,9 +147,17 @@ export default function RivirtualScrape() {
     },
   });
 
-  const deleteJob = useMutation({
+  const cancelJob = useMutation({
     mutationFn: (id: number) =>
       apiFetch(`/api/rivirtual/jobs/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["rivirtual-jobs"] });
+    },
+  });
+
+  const deleteJob = useMutation({
+    mutationFn: (id: number) =>
+      apiFetch(`/api/rivirtual/jobs/${id}?withAgents=true`, { method: "DELETE" }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["rivirtual-jobs"] });
       void queryClient.invalidateQueries({ queryKey: ["rivirtual-agents"] });
@@ -349,15 +364,29 @@ export default function RivirtualScrape() {
                       {format(parseISO(job.createdAt), "MMM d, HH:mm")}
                     </TableCell>
                     <TableCell className="pr-5 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive h-8 w-8 p-0"
-                        onClick={() => deleteJob.mutate(job.id)}
-                        disabled={job.status === "running" || deleteJob.isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {job.status === "running" || job.status === "pending" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Stop scraper"
+                          className="text-amber-600 hover:text-amber-700 h-8 w-8 p-0"
+                          onClick={() => cancelJob.mutate(job.id)}
+                          disabled={cancelJob.isPending}
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Delete job and its agents"
+                          className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                          onClick={() => deleteJob.mutate(job.id)}
+                          disabled={deleteJob.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
