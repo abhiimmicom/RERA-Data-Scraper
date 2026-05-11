@@ -17,7 +17,10 @@ router.post("/rivirtual/jobs", async (req, res): Promise<void> => {
     return;
   }
 
-  const mp = maxPages ? Math.max(1, Math.min(3648, Number(maxPages))) : 10;
+  const mp =
+    maxPages && Number(maxPages) > 0
+      ? Math.min(9999, Number(maxPages))
+      : null;
 
   const [job] = await db
     .insert(rivirtualJobsTable)

@@ -187,8 +187,10 @@ export async function runRivirtualJob(jobId: number): Promise<void> {
     });
 
     const maxPageFromSite = detectMaxPage(resp1.data);
-    const maxPages = job.maxPages ?? 10;
-    const actualMax = Math.min(maxPageFromSite, maxPages);
+    const actualMax =
+      job.maxPages && job.maxPages > 0
+        ? Math.min(maxPageFromSite, job.maxPages)
+        : maxPageFromSite;
 
     await db
       .update(rivirtualJobsTable)

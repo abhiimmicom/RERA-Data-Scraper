@@ -5,7 +5,7 @@ export const rivirtualJobsTable = pgTable("rivirtual_jobs", {
   url: text("url").notNull(),
   label: text("label").notNull(),
   status: text("status").notNull().default("pending"),
-  maxPages: integer("max_pages").default(10),
+  maxPages: integer("max_pages"),
   totalPages: integer("total_pages"),
   pagesScraped: integer("pages_scraped").default(0),
   agentsFound: integer("agents_found").default(0),

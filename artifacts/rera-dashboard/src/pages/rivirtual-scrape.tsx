@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -83,7 +84,8 @@ function StatusBadge({ job }: { job: RivirtualJob }) {
 export default function RivirtualScrape() {
   const [url, setUrl] = useState("https://rivirtual.in/find-realtors");
   const [label, setLabel] = useState("");
-  const [maxPages, setMaxPages] = useState("10");
+  const [maxPages, setMaxPages] = useState("");
+  const [allPages, setAllPages] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -101,6 +103,13 @@ export default function RivirtualScrape() {
 
   const jobs = data?.jobs ?? [];
 
+  const effectiveMaxPages = allPages ? 0 : parseInt(maxPages) || 50;
+
+  const estAgents = allPages ? 3648 * 8 : effectiveMaxPages * 8;
+  const estHours = allPages
+    ? ((3648 * 8 * 1.2) / 3600).toFixed(0)
+    : ((effectiveMaxPages * 8 * 1.2) / 3600).toFixed(1);
+
   const createJob = useMutation({
     mutationFn: () =>
       apiFetch<RivirtualJob>("/api/rivirtual/jobs", {
@@ -109,13 +118,15 @@ export default function RivirtualScrape() {
         body: JSON.stringify({
           url: url.trim(),
           label: label.trim(),
-          maxPages: parseInt(maxPages) || 10,
+          maxPages: allPages ? 0 : effectiveMaxPages,
         }),
       }),
     onSuccess: () => {
       toast({
         title: "Scrape job queued",
-        description: `Fetching up to ${maxPages} pages for ${label}`,
+        description: allPages
+          ? `Fetching all pages for ${label} (est. ~${estHours}h)`
+          : `Fetching up to ${effectiveMaxPages} pages for ${label}`,
       });
       setLabel("");
       void queryClient.invalidateQueries({ queryKey: ["rivirtual-jobs"] });
@@ -214,33 +225,51 @@ export default function RivirtualScrape() {
                 />
               </div>
             </div>
-            <div className="flex items-end gap-4">
-              <div className="space-y-1.5 w-40">
-                <Label htmlFor="maxPages">Max pages to scrape</Label>
-                <Input
-                  id="maxPages"
-                  type="number"
-                  min={1}
-                  max={3648}
-                  value={maxPages}
-                  onChange={(e) => setMaxPages(e.target.value)}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="allPages"
+                  checked={allPages}
+                  onCheckedChange={(v) => setAllPages(v === true)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  ~8 agents/page · site has 3,648 pages
-                </p>
+                <Label htmlFor="allPages" className="cursor-pointer font-normal">
+                  Scrape all pages (site has 3,648 pages · ~29,000 agents)
+                </Label>
               </div>
-              <Button
-                type="submit"
-                disabled={createJob.isPending || !url.trim() || !label.trim()}
-                className="gap-2 mb-5"
-              >
-                {createJob.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Users className="w-4 h-4" />
-                )}
-                Start Scrape
-              </Button>
+              {!allPages && (
+                <div className="space-y-1.5 w-52">
+                  <Label htmlFor="maxPages">Max pages</Label>
+                  <Input
+                    id="maxPages"
+                    type="number"
+                    min={1}
+                    max={3648}
+                    placeholder="e.g. 50"
+                    value={maxPages}
+                    onChange={(e) => setMaxPages(e.target.value)}
+                  />
+                </div>
+              )}
+              <div className="flex items-center gap-4">
+                <p className="text-xs text-muted-foreground">
+                  ~8 agents/page · each agent's profile fetched individually ·{" "}
+                  <span className="font-medium">
+                    est. ~{estAgents.toLocaleString()} agents, ~{estHours}h
+                  </span>
+                </p>
+                <Button
+                  type="submit"
+                  disabled={createJob.isPending || !url.trim() || !label.trim()}
+                  className="gap-2 ml-auto"
+                >
+                  {createJob.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Users className="w-4 h-4" />
+                  )}
+                  Start Scrape
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>
