@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, LayoutDashboard, Users, MapPin, Globe, List } from "lucide-react";
+import { Building2, LayoutDashboard, Users, MapPin, Globe, List, User } from "lucide-react";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -41,6 +41,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 px-3 mt-4 mb-2">Propertiezzzz</p>
           {navItem("/propz/scrape", <Globe className="w-4 h-4" />, "Scrape URLs")}
           {navItem("/propz/agents", <List className="w-4 h-4" />, "Agents")}
+
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 px-3 mt-4 mb-2">RiVirtual</p>
+          {navItem("/rivirtual/scrape", <User className="w-4 h-4" />, "Scrape")}
+          {navItem("/rivirtual/agents", <List className="w-4 h-4" />, "Agents")}
         </div>
         <div className="p-4 border-t border-sidebar-border/50 text-xs text-sidebar-foreground/50">
           Govt. of NCT of Delhi

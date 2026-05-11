@@ -9,6 +9,8 @@ import AgentDetail from "@/pages/agent-detail";
 import RecaMembers from "@/pages/reca-members";
 import PropzScrape from "@/pages/propz-scrape";
 import PropzAgents from "@/pages/propz-agents";
+import RivirtualScrape from "@/pages/rivirtual-scrape";
+import RivirtualAgents from "@/pages/rivirtual-agents";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +30,8 @@ function Router() {
         <Route path="/reca-members" component={RecaMembers} />
         <Route path="/propz/scrape" component={PropzScrape} />
         <Route path="/propz/agents" component={PropzAgents} />
+        <Route path="/rivirtual/scrape" component={RivirtualScrape} />
+        <Route path="/rivirtual/agents" component={RivirtualAgents} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
