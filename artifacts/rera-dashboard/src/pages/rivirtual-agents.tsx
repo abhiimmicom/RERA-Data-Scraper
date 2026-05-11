@@ -4,14 +4,20 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Database,
+  Phone,
+  Mail,
+  MapPin,
+  Building2,
+  Tag,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -27,6 +33,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { format, parseISO } from "date-fns";
 
 interface RivirtualAgent {
   id: number;
@@ -57,7 +70,13 @@ async function apiFetch<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function AgentPhoto({ agent }: { agent: RivirtualAgent }) {
+function AgentPhoto({
+  agent,
+  size = "sm",
+}: {
+  agent: RivirtualAgent;
+  size?: "sm" | "lg";
+}) {
   const [err, setErr] = useState(false);
   const initials = agent.name
     .split(" ")
@@ -66,9 +85,16 @@ function AgentPhoto({ agent }: { agent: RivirtualAgent }) {
     .toUpperCase()
     .slice(0, 2);
 
+  const cls =
+    size === "lg"
+      ? "w-24 h-24 rounded-full text-2xl font-bold"
+      : "w-12 h-12 rounded-full text-sm font-semibold";
+
   if (!agent.photoUrl || err) {
     return (
-      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-semibold text-sm">
+      <div
+        className={`${cls} bg-muted flex items-center justify-center text-muted-foreground`}
+      >
         {initials}
       </div>
     );
@@ -78,7 +104,7 @@ function AgentPhoto({ agent }: { agent: RivirtualAgent }) {
     <img
       src={agent.photoUrl}
       alt={agent.name}
-      className="w-12 h-12 rounded-full object-cover border border-border"
+      className={`${cls} object-cover border border-border`}
       onError={() => setErr(true)}
     />
   );
@@ -101,7 +127,134 @@ function PropertyTypeBadge({ type }: { type: string | null }) {
       </Badge>
     );
   }
-  return <Badge variant="secondary" className="text-xs">{type}</Badge>;
+  return (
+    <Badge variant="secondary" className="text-xs">
+      {type}
+    </Badge>
+  );
+}
+
+function AgentDetailPanel({
+  agent,
+  open,
+  onClose,
+}: {
+  agent: RivirtualAgent | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        {agent && (
+          <>
+            <SheetHeader className="pb-4">
+              <div className="flex items-center gap-4 pt-2">
+                <AgentPhoto agent={agent} size="lg" />
+                <div className="min-w-0">
+                  <SheetTitle className="text-xl leading-tight">
+                    {agent.name}
+                  </SheetTitle>
+                  {agent.city && (
+                    <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> {agent.city}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </SheetHeader>
+
+            <Separator />
+
+            <div className="py-5 space-y-5">
+              {/* Contact */}
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Contact
+                </h3>
+                {agent.phone ? (
+                  <a
+                    href={`tel:${agent.phone.replace(/\s/g, "")}`}
+                    className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary"
+                  >
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    {agent.phone}
+                  </a>
+                ) : (
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="w-4 h-4" /> No phone on record
+                  </p>
+                )}
+                {agent.email ? (
+                  <a
+                    href={`mailto:${agent.email}`}
+                    className="flex items-center gap-2 text-sm text-primary hover:underline break-all"
+                  >
+                    <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    {agent.email}
+                  </a>
+                ) : (
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="w-4 h-4" /> No email on record
+                  </p>
+                )}
+              </section>
+
+              <Separator />
+
+              {/* Details */}
+              <section className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Details
+                </h3>
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-3 text-sm">
+                  <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Property Type</p>
+                    <PropertyTypeBadge type={agent.propertyType} />
+                  </div>
+
+                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">City</p>
+                    <p className="font-medium">{agent.city || "–"}</p>
+                  </div>
+
+                  <Tag className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Source</p>
+                    <p className="font-medium">{agent.label || "–"}</p>
+                  </div>
+
+                  <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Scraped</p>
+                    <p className="font-medium">
+                      {format(parseISO(agent.scrapedAt), "d MMM yyyy, HH:mm")}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {agent.slug && (
+                <>
+                  <Separator />
+                  <section className="space-y-1">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Identifier
+                    </h3>
+                    <p className="text-xs font-mono text-muted-foreground break-all">
+                      {agent.slug}
+                    </p>
+                  </section>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
 }
 
 export default function RivirtualAgents() {
@@ -109,6 +262,7 @@ export default function RivirtualAgents() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedJob, setSelectedJob] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [selectedAgent, setSelectedAgent] = useState<RivirtualAgent | null>(null);
   const limit = 50;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -168,7 +322,9 @@ export default function RivirtualAgents() {
           <div className="flex items-center gap-2">
             <h2 className="font-semibold text-base">Realtor Registry</h2>
             {total > 0 && (
-              <Badge variant="secondary" className="font-normal">{total} agents</Badge>
+              <Badge variant="secondary" className="font-normal">
+                {total} agents
+              </Badge>
             )}
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -202,31 +358,53 @@ export default function RivirtualAgents() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-14 pl-4 text-xs uppercase tracking-wider text-muted-foreground">Photo</TableHead>
-                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Name</TableHead>
-                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Contact</TableHead>
-                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Property Type</TableHead>
-                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">City</TableHead>
-                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Source</TableHead>
-                  <TableHead className="pr-4 text-right text-xs uppercase tracking-wider text-muted-foreground">Profile</TableHead>
+                  <TableHead className="w-14 pl-4 text-xs uppercase tracking-wider text-muted-foreground">
+                    Photo
+                  </TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Name
+                  </TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Contact
+                  </TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Property Type
+                  </TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
+                    City
+                  </TableHead>
+                  <TableHead className="pr-4 text-xs uppercase tracking-wider text-muted-foreground">
+                    Source
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell className="pl-4"><Skeleton className="w-12 h-12 rounded-full" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                      <TableCell className="pl-4">
+                        <Skeleton className="w-12 h-12 rounded-full" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-36" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : agents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-64 text-center">
+                    <TableCell colSpan={6} className="h-64 text-center">
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
                         <Database className="w-10 h-10 text-muted/40" />
                         <p className="font-medium text-foreground">No agents found</p>
@@ -240,15 +418,21 @@ export default function RivirtualAgents() {
                   </TableRow>
                 ) : (
                   agents.map((agent) => (
-                    <TableRow key={agent.id} className="align-middle">
+                    <TableRow
+                      key={agent.id}
+                      className="align-middle cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedAgent(agent)}
+                    >
                       <TableCell className="pl-4 py-3">
                         <AgentPhoto agent={agent} />
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="font-semibold text-foreground">{agent.name}</div>
-                        {agent.slug && (
-                          <div className="text-xs text-muted-foreground mt-0.5 font-mono truncate max-w-[180px]">
-                            {agent.slug}
+                        <div className="font-semibold text-foreground">
+                          {agent.name}
+                        </div>
+                        {agent.city && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {agent.city}
                           </div>
                         )}
                       </TableCell>
@@ -256,21 +440,17 @@ export default function RivirtualAgents() {
                         {agent.phone || agent.email ? (
                           <div className="flex flex-col gap-0.5">
                             {agent.phone && (
-                              <a
-                                href={`tel:${agent.phone.replace(/\s/g, "")}`}
-                                className="font-medium text-foreground hover:text-primary"
-                              >
+                              <span className="font-medium text-foreground">
                                 {agent.phone}
-                              </a>
+                              </span>
                             )}
                             {agent.email && (
-                              <a
-                                href={`mailto:${agent.email}`}
-                                className="text-xs text-primary hover:underline truncate max-w-[180px]"
+                              <span
+                                className="text-xs text-primary truncate max-w-[180px]"
                                 title={agent.email}
                               >
                                 {agent.email}
-                              </a>
+                              </span>
                             )}
                           </div>
                         ) : (
@@ -283,25 +463,16 @@ export default function RivirtualAgents() {
                       <TableCell className="py-3 text-sm text-muted-foreground">
                         {agent.city || "–"}
                       </TableCell>
-                      <TableCell className="py-3">
+                      <TableCell className="pr-4 py-3">
                         {agent.label ? (
-                          <Badge variant="secondary" className="text-xs font-normal">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs font-normal"
+                          >
                             {agent.label}
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground">–</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="pr-4 py-3 text-right">
-                        {agent.detailUrl && (
-                          <a
-                            href={agent.detailUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                          >
-                            View <ExternalLink className="w-3 h-3" />
-                          </a>
                         )}
                       </TableCell>
                     </TableRow>
@@ -316,8 +487,13 @@ export default function RivirtualAgents() {
           <div className="p-4 border-t flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Showing{" "}
-              <span className="font-medium text-foreground">{(page - 1) * limit + 1}</span> to{" "}
-              <span className="font-medium text-foreground">{Math.min(page * limit, total)}</span>{" "}
+              <span className="font-medium text-foreground">
+                {(page - 1) * limit + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium text-foreground">
+                {Math.min(page * limit, total)}
+              </span>{" "}
               of{" "}
               <span className="font-medium text-foreground">{total}</span> agents
             </div>
@@ -345,6 +521,12 @@ export default function RivirtualAgents() {
           </div>
         )}
       </Card>
+
+      <AgentDetailPanel
+        agent={selectedAgent}
+        open={selectedAgent !== null}
+        onClose={() => setSelectedAgent(null)}
+      />
     </div>
   );
 }
