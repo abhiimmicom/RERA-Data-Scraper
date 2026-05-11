@@ -1,0 +1,56 @@
+<div class="row g-4 align-items-center">
+		<div class="col-md-4">
+			<figure class="agent-list-image m-0">
+				<a href="https://propertiezzzz.com/agent/amit-sarkar-upreraagt00018-07-2025/" itemprop="url">
+					<meta itemprop="image" content="https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025--780x780.png"><img width="780" height="780" src="https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025--780x780.png" class="img-fluid wp-post-image entered lazyloaded" alt="Amit Sarkar UPRERAAGT00018072025" decoding="async" data-lazy-srcset="https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025--780x780.png 780w, https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025-.png 800w" data-lazy-sizes="(max-width: 780px) 100vw, 780px" data-lazy-src="https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025--780x780.png" data-ll-status="loaded" sizes="(max-width: 780px) 100vw, 780px" srcset="https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025--780x780.png 780w, https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025-.png 800w"><noscript><img width="780" height="780" src="https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025--780x780.png" class="img-fluid wp-post-image" alt="Amit Sarkar UPRERAAGT00018072025" decoding="async" srcset="https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025--780x780.png 780w, https://propertiezzzz.com/wp-content/uploads/2025/11/Amit-Sarkar-UPRERAAGT00018072025-.png 800w" sizes="(max-width: 780px) 100vw, 780px" /></noscript>				</a>	
+			</figure>
+		</div>
+
+		<div class="col-md-8">
+			<div class="agent-list-content">
+				<header class="d-flex align-items-center justify-content-between gap-2 mb-1">
+					<h2 class="mb-0 d-flex align-items-center gap-2">
+						
+<span class="badge btn-secondary agent-verified-badge">
+    <i class="houzez-icon icon-check-circle-1 me-1"></i> Verified</span> 
+						<a href="https://propertiezzzz.com/agent/amit-sarkar-upreraagt00018-07-2025/" itemprop="name">Amit Sarkar UPRERAAGT00018/07/2025</a> 
+					</h2>
+					<div class="rating-score-wrap flex-grow-1" role="complementary">
+		<span class="star d-flex align-items-center" role="img">
+	    
+		
+	    	</span>
+</div><!-- rating-score-wrap -->				</header>
+
+				<p class="agent-list-position mb-1"> 
+			<span itemprop="jobTitle">Real Estate Advisor</span>
+		
+	</p>
+
+				<dl class="agent-list-contact list-unstyled list-lined">
+					        <div class="d-flex align-items-center justify-content-between py-1 list-lined-item">
+            <dt><strong>Mobile</strong></dt>
+            <dd class="agent-phone  mb-0" itemprop="telephone">
+                <a href="tel:+917460003426">
+                    +91 74600-03426                </a>
+            </dd>
+        </div>
+            <div class="d-flex align-items-center justify-content-between py-1 list-lined-item">
+            <dt><strong>Email</strong></dt>
+            <dd class="mb-0"><a href="mailto:sitevisitnow@gmail.com" itemprop="email">sitevisitnow@gmail.com</a></dd>
+        </div>
+    				</dl>
+				<footer class="d-flex align-items-center justify-content-between">
+					<nav class="agent-social-media" itemscope="" itemtype="http://schema.org/Person">
+							<span class="agent-whatsapp">
+		<a class="btn-whatsapp" target="_blank" href="https://wa.me/+917460003426" aria-label="WhatsApp" itemprop="sameAs">
+			<i class="houzez-icon icon-messaging-whatsapp me-2"></i>
+		</a>
+	</span>
+						</nav>
+					<a class="agent-list-link no-wrap" href="https://propertiezzzz.com/agent/amit-sarkar-upreraagt00018-07-2025/"><strong>View Listings</strong></a>
+				</footer>
+
+			</div>
+		</div>
+	</div>

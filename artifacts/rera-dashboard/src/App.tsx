@@ -7,6 +7,8 @@ import { AppLayout } from "@/components/layout/app-layout";
 import Home from "@/pages/home";
 import AgentDetail from "@/pages/agent-detail";
 import RecaMembers from "@/pages/reca-members";
+import PropzScrape from "@/pages/propz-scrape";
+import PropzAgents from "@/pages/propz-agents";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +26,8 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/agents/:id" component={AgentDetail} />
         <Route path="/reca-members" component={RecaMembers} />
+        <Route path="/propz/scrape" component={PropzScrape} />
+        <Route path="/propz/agents" component={PropzAgents} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
