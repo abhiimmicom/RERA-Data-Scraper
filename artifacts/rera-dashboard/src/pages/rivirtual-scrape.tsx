@@ -83,7 +83,7 @@ function StatusBadge({ job }: { job: RivirtualJob }) {
 
 export default function RivirtualScrape() {
   const [url, setUrl] = useState("https://rivirtual.in/find-realtors");
-  const [label, setLabel] = useState("");
+  const [label, setLabel] = useState("All India");
   const [maxPages, setMaxPages] = useState("");
   const [allPages, setAllPages] = useState(true);
   const { toast } = useToast();
