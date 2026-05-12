@@ -87,8 +87,7 @@ function extractProfileLinks(html: string): ProfileRef[] {
     const href = $(el).attr("href");
     if (!href || seen.has(href)) return;
     seen.add(href);
-    const slug = slugFromUrl(href);
-    refs.push({ url: href, slug });
+    refs.push({ url: href, slug: slugFromUrl(href) });
   });
 
   return refs;
@@ -146,8 +145,7 @@ async function fetchAgentDetail(
     const cfCode = cfEl.attr("data-cfemail") ?? "";
     const email = cfCode ? decodeCfEmail(cfCode) || null : null;
 
-    const phone =
-      panel.find(".show_contact_02 a").first().text().trim() || null;
+    const phone = panel.find(".show_contact_02 a").first().text().trim() || null;
 
     let propertyType: string | null = null;
     panel.find("h5").each((_, el) => {
@@ -184,12 +182,17 @@ export async function runRivirtualJob(jobId: number): Promise<void> {
   if (!job) return;
 
   try {
+    const startPage = Math.max(1, (job.pagesScraped ?? 0) + 1);
+    const startingAgents = job.agentsFound ?? 0;
+
     await db
       .update(rivirtualJobsTable)
-      .set({ status: "running", pagesScraped: 0, agentsFound: 0 })
+      .set({ status: "running" })
       .where(eq(rivirtualJobsTable.id, jobId));
 
-    const resp1 = await axios.get<string>(job.url, {
+    const baseUrl = job.url.replace(/[?#].*$/, "");
+    const firstPageUrl = startPage === 1 ? job.url : `${baseUrl}?page=${startPage}`;
+    const resp1 = await axios.get<string>(firstPageUrl, {
       headers: HEADERS,
       timeout: 20000,
     });
@@ -205,16 +208,13 @@ export async function runRivirtualJob(jobId: number): Promise<void> {
       .set({ totalPages: actualMax })
       .where(eq(rivirtualJobsTable.id, jobId));
 
-    let totalAgents = 0;
+    let totalAgents = startingAgents;
 
     const processPage = async (html: string, pageNum: number): Promise<boolean> => {
-      // Check cancellation before processing each page
       if (!(await isJobStillRunning(jobId))) return false;
 
       const profiles = extractProfileLinks(html);
       let inserted = 0;
-
-      // Find which slugs from this page already exist in the DB — skip those
       const pageSlugs = profiles.map((p) => p.slug).filter(Boolean);
       const existingSlugs = new Set<string>();
       if (pageSlugs.length > 0) {
@@ -226,11 +226,9 @@ export async function runRivirtualJob(jobId: number): Promise<void> {
       }
 
       for (const profile of profiles) {
-        // Check cancellation between each profile fetch
         if (!(await isJobStillRunning(jobId))) return false;
 
         if (existingSlugs.has(profile.slug)) {
-          // Already scraped — count it but skip the network fetch
           inserted++;
           continue;
         }
@@ -269,15 +267,13 @@ export async function runRivirtualJob(jobId: number): Promise<void> {
       return true;
     };
 
-    const ok = await processPage(resp1.data, 1);
+    const ok = await processPage(resp1.data, startPage);
     if (!ok) {
       logger.info({ jobId }, "Rivirtual job cancelled");
       return;
     }
 
-    const baseUrl = job.url.replace(/[?#].*$/, "");
-
-    for (let page = 2; page <= actualMax; page++) {
+    for (let page = startPage + 1; page <= actualMax; page++) {
       await sleep(1000);
       const pageUrl = `${baseUrl}?page=${page}`;
       const resp = await axios.get<string>(pageUrl, {
